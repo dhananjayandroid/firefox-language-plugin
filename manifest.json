@@ -5,7 +5,7 @@
   "description": "Improve and correct text using AI-powered language processing",
   "browser_specific_settings": {
     "gecko": {
-      "id": "firefox-language-plugin@dhananjayandroid.github.io"
+      "id": "firefox-language-plugin-1@dhananjayandroid.github.io"
     }
   },
   "permissions": [
