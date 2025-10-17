@@ -22,14 +22,22 @@ function saveSettings(e) {
     return;
   }
   
+  console.log('[OPTIONS] Saving API key and model to storage...');
+  console.log('[OPTIONS] API key length:', apiKey.length);
+  console.log('[OPTIONS] Selected model:', model);
+  
   // Save to browser storage - save both separately
   browser.storage.sync.set({
     openRouterApiKey: apiKey,
     selectedModel: model
   }).then(() => {
+    console.log('[OPTIONS] Settings saved successfully!');
+    console.log('[OPTIONS] Saved API key (first 10 chars):', apiKey.substring(0, 10) + '...');
+    console.log('[OPTIONS] Saved model:', model);
     showStatus('Settings saved successfully!', 'success');
     // DO NOT clear the API key field - keep it visible for user confirmation
   }).catch((error) => {
+    console.error('[OPTIONS] Error saving settings:', error);
     showStatus('Error saving settings: ' + error.message, 'error');
   });
 }
@@ -60,46 +68,38 @@ async function fetchModels(apiKey) {
   }
 }
 
-// Populate model dropdown with models
+// Populate model dropdown with models array
 function populateModelDropdown(models) {
   const modelSelect = document.getElementById('model');
+  const currentValue = modelSelect.value; // Save current selection
   
   // Clear existing options except the first placeholder
-  while (modelSelect.children.length > 1) {
-    modelSelect.removeChild(modelSelect.lastChild);
-  }
+  modelSelect.innerHTML = '<option value="">Select a model</option>';
   
   // Add model options
   models.forEach(model => {
     const option = document.createElement('option');
     option.value = model.id;
-    option.textContent = `${model.id}${model.name ? ' - ' + model.name : ''}`;
+    option.textContent = model.name || model.id;
     modelSelect.appendChild(option);
   });
   
-  // Always enable the dropdown
-  modelSelect.disabled = false;
+  // Restore previous selection if it exists in new list
+  if (currentValue) {
+    modelSelect.value = currentValue;
+  }
 }
 
-// Handle API key input and fetch models
+// Handle API key input and fetch models dynamically
 function handleApiKeyInput() {
   const apiKeyInput = document.getElementById('apiKey');
-  const fetchButton = document.createElement('button');
-  fetchButton.textContent = 'Fetch Models';
-  fetchButton.type = 'button';
-  fetchButton.id = 'fetchModelsBtn';
   
-  // Add fetch button after API key input if not already present
-  if (!document.getElementById('fetchModelsBtn')) {
-    apiKeyInput.parentElement.appendChild(fetchButton);
-  }
-  
-  // Handle fetch models button click
-  document.getElementById('fetchModelsBtn').addEventListener('click', async () => {
+  apiKeyInput.addEventListener('blur', async () => {
     const apiKey = apiKeyInput.value.trim();
     
-    if (apiKey && apiKey.length > 10) { // Basic validation for API key
+    if (apiKey) {
       const models = await fetchModels(apiKey);
+      
       if (models && models.length > 0) {
         populateModelDropdown(models);
         showStatus('Models loaded from API!', 'success');
@@ -120,7 +120,14 @@ function loadSettings() {
   
   browser.storage.sync.get(['openRouterApiKey', 'selectedModel'])
     .then(async (result) => {
+      console.log('[OPTIONS] Loading saved settings...');
+      console.log('[OPTIONS] API key exists:', !!result.openRouterApiKey);
+      console.log('[OPTIONS] Selected model:', result.selectedModel);
+      
       if (result.openRouterApiKey) {
+        console.log('[OPTIONS] API key length:', result.openRouterApiKey.length);
+        console.log('[OPTIONS] API key (first 10 chars):', result.openRouterApiKey.substring(0, 10) + '...');
+        
         // Pre-fill the API key (not masked, but actually filled)
         document.getElementById('apiKey').value = result.openRouterApiKey;
         
@@ -131,14 +138,38 @@ function loadSettings() {
         }
         // If fetch fails, default models are already populated
       }
+      
       if (result.selectedModel) {
+        console.log('[OPTIONS] Setting model dropdown to:', result.selectedModel);
         // Set the selected model value
         document.getElementById('model').value = result.selectedModel;
       }
     })
     .catch((error) => {
-      console.error('Error loading settings:', error);
+      console.error('[OPTIONS] Error loading settings:', error);
     });
+}
+
+// Toggle API key visibility
+function setupToggleKeyButton() {
+  const toggleBtn = document.getElementById('toggleKeyBtn');
+  const apiKeyInput = document.getElementById('apiKey');
+  
+  if (toggleBtn && apiKeyInput) {
+    console.log('[OPTIONS] Setting up toggle button for API key visibility');
+    
+    toggleBtn.addEventListener('click', () => {
+      if (apiKeyInput.type === 'password') {
+        apiKeyInput.type = 'text';
+        toggleBtn.textContent = 'Hide API Key';
+        console.log('[OPTIONS] API key revealed');
+      } else {
+        apiKeyInput.type = 'password';
+        toggleBtn.textContent = 'Show API Key';
+        console.log('[OPTIONS] API key hidden');
+      }
+    });
+  }
 }
 
 // Display status message
@@ -157,7 +188,10 @@ function showStatus(message, type) {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('[OPTIONS] Initializing options page...');
   loadSettings();
   handleApiKeyInput();
+  setupToggleKeyButton();
   document.getElementById('settingsForm').addEventListener('submit', saveSettings);
+  console.log('[OPTIONS] Options page initialized');
 });
