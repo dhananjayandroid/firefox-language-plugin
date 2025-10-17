@@ -57,6 +57,16 @@
     button:hover {
       background-color: #0052a3;
     }
+    button.secondary {
+      background-color: #6c757d;
+      padding: 8px 16px;
+      font-size: 13px;
+      margin-top: 8px;
+      margin-left: 0;
+    }
+    button.secondary:hover {
+      background-color: #5a6268;
+    }
     .status {
       margin-top: 15px;
       padding: 10px;
@@ -81,6 +91,9 @@
       color: #666;
       margin-top: 5px;
     }
+    .key-container {
+      position: relative;
+    }
   </style>
 </head>
 <body>
@@ -89,7 +102,10 @@
     
     <form id="settingsForm">
       <label for="apiKey">OpenRouter API Key</label>
-      <input type="password" id="apiKey" placeholder="Enter your OpenRouter API key" required>
+      <div class="key-container">
+        <input type="password" id="apiKey" placeholder="Enter your OpenRouter API key" required>
+        <button type="button" id="toggleKeyBtn" class="secondary">Show API Key</button>
+      </div>
       <div class="help-text">Get your API key from <a href="https://openrouter.ai/keys" target="_blank">openrouter.ai/keys</a></div>
       
       <label for="model">Model Selection</label>
@@ -110,7 +126,6 @@
     
     <div id="status" class="status"></div>
   </div>
-  
   <script src="options.js"></script>
 </body>
 </html>
