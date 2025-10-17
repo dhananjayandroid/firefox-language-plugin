@@ -1,12 +1,20 @@
 // options.js - Settings page script for Language Plugin
 
+// Default models list (used when API key is not available or fetch fails)
+const DEFAULT_MODELS = [
+  { id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo' },
+  { id: 'openai/gpt-4', name: 'GPT-4' },
+  { id: 'anthropic/claude-2', name: 'Claude 2' },
+  { id: 'meta-llama/llama-2-70b-chat', name: 'Llama 2 70B' },
+  { id: 'google/palm-2-chat-bison', name: 'PaLM 2' }
+];
+
 // Save settings to browser.storage
 function saveSettings(e) {
   e.preventDefault();
   
   const apiKey = document.getElementById('apiKey').value;
   const model = document.getElementById('model').value;
-  const statusDiv = document.getElementById('status');
   
   // Validate inputs
   if (!apiKey || !model) {
@@ -14,16 +22,13 @@ function saveSettings(e) {
     return;
   }
   
-  // Save to browser storage
+  // Save to browser storage - save both separately
   browser.storage.sync.set({
     openRouterApiKey: apiKey,
     selectedModel: model
   }).then(() => {
     showStatus('Settings saved successfully!', 'success');
-    // Clear the API key field for security (user can re-enter if needed)
-    setTimeout(() => {
-      document.getElementById('apiKey').value = '';
-    }, 1500);
+    // DO NOT clear the API key field - keep it visible for user confirmation
   }).catch((error) => {
     showStatus('Error saving settings: ' + error.message, 'error');
   });
@@ -50,12 +55,12 @@ async function fetchModels(apiKey) {
     return data.data; // OpenRouter API returns models in data.data array
   } catch (error) {
     console.error('Error fetching models:', error);
-    showStatus('Error fetching models: ' + error.message, 'error');
-    return [];
+    showStatus('Could not fetch models from API. Using default list.', 'info');
+    return null; // Return null to indicate fetch failed
   }
 }
 
-// Populate model dropdown with fetched models
+// Populate model dropdown with models
 function populateModelDropdown(models) {
   const modelSelect = document.getElementById('model');
   
@@ -64,61 +69,70 @@ function populateModelDropdown(models) {
     modelSelect.removeChild(modelSelect.lastChild);
   }
   
-  // Add new model options
+  // Add model options
   models.forEach(model => {
     const option = document.createElement('option');
     option.value = model.id;
-    option.textContent = `${model.id} - ${model.name || model.id}`;
+    option.textContent = `${model.id}${model.name ? ' - ' + model.name : ''}`;
     modelSelect.appendChild(option);
   });
   
-  // Enable the dropdown
+  // Always enable the dropdown
   modelSelect.disabled = false;
-  showStatus('Models loaded successfully!', 'success');
 }
 
 // Handle API key input and fetch models
 function handleApiKeyInput() {
   const apiKeyInput = document.getElementById('apiKey');
-  const modelSelect = document.getElementById('model');
+  const fetchButton = document.createElement('button');
+  fetchButton.textContent = 'Fetch Models';
+  fetchButton.type = 'button';
+  fetchButton.id = 'fetchModelsBtn';
   
-  apiKeyInput.addEventListener('blur', async () => {
+  // Add fetch button after API key input if not already present
+  if (!document.getElementById('fetchModelsBtn')) {
+    apiKeyInput.parentElement.appendChild(fetchButton);
+  }
+  
+  // Handle fetch models button click
+  document.getElementById('fetchModelsBtn').addEventListener('click', async () => {
     const apiKey = apiKeyInput.value.trim();
     
     if (apiKey && apiKey.length > 10) { // Basic validation for API key
       const models = await fetchModels(apiKey);
       if (models && models.length > 0) {
         populateModelDropdown(models);
+        showStatus('Models loaded from API!', 'success');
       } else {
-        showStatus('No models found or invalid API key', 'error');
-        modelSelect.disabled = true;
+        // Use default models if fetch fails
+        populateModelDropdown(DEFAULT_MODELS);
       }
     } else {
-      // Clear model dropdown if no valid API key
-      const modelSelect = document.getElementById('model');
-      while (modelSelect.children.length > 1) {
-        modelSelect.removeChild(modelSelect.lastChild);
-      }
-      modelSelect.disabled = true;
+      showStatus('Please enter a valid API key', 'error');
     }
   });
 }
 
 // Load saved settings
 function loadSettings() {
+  // First, populate with default models so dropdown is always usable
+  populateModelDropdown(DEFAULT_MODELS);
+  
   browser.storage.sync.get(['openRouterApiKey', 'selectedModel'])
     .then(async (result) => {
       if (result.openRouterApiKey) {
-        // Show masked API key or placeholder
-        document.getElementById('apiKey').placeholder = 'API key saved (enter new to update)';
+        // Pre-fill the API key (not masked, but actually filled)
+        document.getElementById('apiKey').value = result.openRouterApiKey;
         
-        // Fetch and populate models with saved API key
+        // Try to fetch and populate models with saved API key
         const models = await fetchModels(result.openRouterApiKey);
         if (models && models.length > 0) {
           populateModelDropdown(models);
         }
+        // If fetch fails, default models are already populated
       }
       if (result.selectedModel) {
+        // Set the selected model value
         document.getElementById('model').value = result.selectedModel;
       }
     })
