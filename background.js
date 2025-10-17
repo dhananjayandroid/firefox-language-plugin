@@ -1,18 +1,15 @@
 // Context menu creation
 console.log('[BACKGROUND] Creating context menus...');
-
 browser.contextMenus.create({
   id: "improve-text",
   title: "Improve Text",
   contexts: ["selection"]
 });
-
 browser.contextMenus.create({
   id: "correct-grammar",
   title: "Correct Grammar",
   contexts: ["selection"]
 });
-
 console.log('[BACKGROUND] Context menus created');
 
 // Handle context menu clicks
@@ -84,6 +81,32 @@ async function processWithOpenRouter(text, option) {
       throw new Error('Invalid option selected.');
     }
     
+    // Prepare API request payload
+    const requestPayload = {
+      model: model,
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional writing assistant. When given text to improve or correct, output only the refined text itself with no additional commentary, explanations, or formatting.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      temperature: 0.7,
+      max_tokens: 2000
+    };
+    
+    console.log('[BACKGROUND] *** FULL API REQUEST PAYLOAD ***');
+    console.log('[BACKGROUND] Model:', requestPayload.model);
+    console.log('[BACKGROUND] API Key (masked):', settings.openRouterApiKey ? settings.openRouterApiKey.substring(0, 10) + '...[REDACTED]' : 'Not set');
+    console.log('[BACKGROUND] System message:', requestPayload.messages[0].content);
+    console.log('[BACKGROUND] User prompt:', requestPayload.messages[1].content);
+    console.log('[BACKGROUND] Temperature:', requestPayload.temperature);
+    console.log('[BACKGROUND] Max tokens:', requestPayload.max_tokens);
+    console.log('[BACKGROUND] *** END OF API REQUEST PAYLOAD ***');
+    
     console.log('[BACKGROUND] Making API request to OpenRouter...');
     
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -94,21 +117,7 @@ async function processWithOpenRouter(text, option) {
         'HTTP-Referer': 'https://github.com/dhananjayandroid/firefox-language-plugin',
         'X-Title': 'Firefox Language Plugin'
       },
-      body: JSON.stringify({
-        model: model,
-        messages: [
-          {
-            role: 'system',
-            content: 'You are a professional writing assistant. When given text to improve or correct, output only the refined text itself with no additional commentary, explanations, or formatting.'
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 2000
-      })
+      body: JSON.stringify(requestPayload)
     });
     
     console.log('[BACKGROUND] API response status:', response.status);
@@ -122,6 +131,9 @@ async function processWithOpenRouter(text, option) {
     
     const data = await response.json();
     console.log('[BACKGROUND] API response received successfully');
+    console.log('[BACKGROUND] *** FULL OPENROUTER.AI RESPONSE ***');
+    console.log('[BACKGROUND] Complete response object:', JSON.stringify(data, null, 2));
+    console.log('[BACKGROUND] *** END OF OPENROUTER.AI RESPONSE ***');
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('[BACKGROUND] Invalid response structure:', data);
@@ -129,7 +141,11 @@ async function processWithOpenRouter(text, option) {
     }
     
     let improvedText = data.choices[0].message.content.trim();
+    console.log('[BACKGROUND] Extracted text from response:');
     console.log('[BACKGROUND] Generated text length:', improvedText.length);
+    console.log('[BACKGROUND] *** FULL TEXT FROM SERVER ***');
+    console.log('[BACKGROUND] Text:', improvedText);
+    console.log('[BACKGROUND] *** END OF TEXT FROM SERVER ***');
     
     // Remove surrounding quotes if present
     if ((improvedText.startsWith('"') && improvedText.endsWith('"')) ||
