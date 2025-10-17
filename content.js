@@ -1,8 +1,7 @@
 // Listen for messages from background script
 browser.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "improve-text" || 
-      request.action === "correct-grammar" || 
-      request.action === "reword-text") {
+      request.action === "correct-grammar") {
     
     // Get the selected text and its position
     const selection = window.getSelection();
