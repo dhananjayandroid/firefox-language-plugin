@@ -2,6 +2,8 @@
 
 A Firefox extension that enhances your writing by rewording or improving selected text using OpenRouter.ai API. Works like Grammarly to provide grammar correction and text improvement directly in your browser.
 
+https://addons.mozilla.org/en-US/firefox/addon/language-improver/
+
 ## Features
 
 - **Context Menu Integration**: Right-click on selected text to access language improvement options
